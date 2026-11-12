@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tiny Bird</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;background:radial-gradient(circle at 50% 15%,#294b70,#101a32 70%);font-family:system-ui,sans-serif;color:#f7fbff}.wrap{width:min(94vw,440px);text-align:center}.top{display:flex;justify-content:space-between;align-items:center;margin:0 4px 10px}.top h1{font-size:1.35rem;margin:0;letter-spacing:.04em}.score{font-weight:800;font-size:1.2rem;color:#ffe28a}canvas{width:100%;aspect-ratio:360/560;display:block;border:3px solid #d7efff;border-radius:18px;background:#8bd8ef;box-shadow:0 18px 55px #0008;touch-action:manipulation}.hint{opacity:.8;font-size:.9rem;margin:12px 0 0}.btn{margin-top:12px;border:0;border-radius:999px;padding:11px 22px;background:#ffe28a;color:#26334b;font-weight:800;font-size:1rem;cursor:pointer}.btn:focus-visible{outline:3px solid white;outline-offset:3px}
+</style>
+</head>
+<body>
+<main class="wrap">
+ <div class="top"><h1>🐤 TINY BIRD</h1><div class="score">Score: <span id="score">0</span></div></div>
+ <canvas id="game" width="360" height="560" aria-label="Tiny Bird game. Tap, click or press Space to flap through the gaps."></canvas>
+ <button class="btn" id="start">Start game</button>
+ <p class="hint">Tap / click / Space to flap • Pass through the pipes!</p>
+</main>
+<script>
+(() => {
+ const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+ const scoreEl=document.getElementById('score'),button=document.getElementById('start');
+ const W=360,H=560,ground=48;
+ let bird,pipes,score,frame,state;
+ function reset(){bird={x:92,y:245,vy:0,r:13};pipes=[];score=0;frame=0;scoreEl.textContent='0';state='ready';draw()}
+ function addPipe(){const gap=150,top=65+Math.random()*210;pipes.push({x:W+20,top,gap,passed:false})}
+ function flap(){if(state==='over'){reset();state='playing'}else if(state==='ready')state='playing';bird.vy=-5.4}
+ function end(){state='over';button.textContent='Play again';draw()}
+ function update(){
+  if(state!=='playing')return;frame++;bird.vy+=.27;bird.y+=bird.vy;
+  if(frame%98===1)addPipe();
+  for(const p of pipes){p.x-=2.25;if(!p.passed&&p.x+54<bird.x){p.passed=true;score++;scoreEl.textContent=score}}
+  pipes=pipes.filter(p=>p.x>-65);
+  if(bird.y-bird.r<0||bird.y+bird.r>H-ground)end();
+  for(const p of pipes){const hitX=bird.x+bird.r>p.x&&bird.x-bird.r<p.x+54;const hitY=bird.y-bird.r<p.top||bird.y+bird.r>p.top+p.gap;if(hitX&&hitY)end()}
+ }
+ function draw(){
+  const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#77cce8');sky.addColorStop(1,'#d4f4e8');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#ffffff66';[[48,95,25],[255,130,34],[155,210,20]].forEach(([x,y,r])=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()});
+  for(const p of pipes){ctx.fillStyle='#319b58';ctx.fillRect(p.x,0,54,p.top);ctx.fillRect(p.x-5,p.top-15,64,15);ctx.fillRect(p.x,p.top+p.gap,54,H-ground-(p.top+p.gap));ctx.fillRect(p.x-5,p.top+p.gap,64,15);ctx.fillStyle='#62d47b';ctx.fillRect(p.x+8,0,7,p.top-15);ctx.fillRect(p.x+8,p.top+p.gap+15,7,H-ground-p.top-p.gap-15)}
+  ctx.fillStyle='#e5c77b';ctx.fillRect(0,H-ground,W,ground);ctx.fillStyle='#8bbf62';ctx.fillRect(0,H-ground,W,9);
+  ctx.save();ctx.translate(bird.x,bird.y);ctx.rotate(Math.max(-.35,Math.min(.7,bird.vy*.06)));ctx.fillStyle='#ffd34e';ctx.beginPath();ctx.ellipse(0,0,16,12,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(7,-5,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#25344a';ctx.beginPath();ctx.arc(9,-5,2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f28b45';ctx.beginPath();ctx.moveTo(13,1);ctx.lineTo(24,5);ctx.lineTo(13,8);ctx.fill();ctx.restore();
+  if(state!=='playing'){ctx.fillStyle='#10253bd9';ctx.fillRect(30,215,300,105);ctx.textAlign='center';ctx.fillStyle='white';ctx.font='bold 25px system-ui';ctx.fillText(state==='over'?'Game over!':'Ready, bird?',180,255);ctx.font='15px system-ui';ctx.fillText(state==='over'?'Tap Play again to retry':'Tap Start, then flap!',180,284)}
+ }
+ function loop(){update();draw();requestAnimationFrame(loop)}
+ canvas.addEventListener('pointerdown',flap);document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();flap()}});
+ button.addEventListener('click',()=>{if(state==='over')reset();state='playing';flap();button.textContent='Restart'});
+ reset();loop();
+})();
+</script>
+</body>
+</html>
